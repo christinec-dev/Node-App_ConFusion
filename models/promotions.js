@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-//enables mongoose currency type converter
-require('mongoose-currency').loadType(mongoose);
-const Currency = mongoose.Types.Currency;
+// //enables mongoose currency type converter
+// require('mongoose-currency').loadType(mongoose);
+// const Currency = mongoose.Types.Currency //!!deprecated;
 
 //creates the promoSchema comments using mongoose
 const promoSchema = new Schema({
@@ -21,7 +21,7 @@ const promoSchema = new Schema({
         default: ''
     },
     price: {
-        type: Currency,
+        type: Number,
         required: true,
         min: 0
     },
