@@ -4,22 +4,21 @@ var passportLocalMongoose = require('passport-local-mongoose');
 
 //sets constraints for data entry types
 var User = new Schema ({
-    username: {
-        type: String,
-        required: true,
-        unique: true
-    }, 
-    password: {
-        type: String,
-        required: true
+   firstname: {
+       type: String,
+       default: ''
     },
-    admin: {
+   lastname: {
+    type: String,
+    default: ''
+    },
+   admin: {
         type: Boolean,
         default: false
     }
 });
 
 //allows plugin
-User.plugin(passportLocalMongoose)
+User.plugin(passportLocalMongoose);
 
 module.exports = mongoose.model('User', User);

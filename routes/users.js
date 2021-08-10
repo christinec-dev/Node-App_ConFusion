@@ -5,8 +5,16 @@ var passport = require('passport');
 var authenticate = require('../authenticate');
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+  User.find({}).then(users => {
+    if (users) {
+      res.json(users)
+    }
+    else {
+      next(err);
+    }
+  })
+    .catch(err => next(err));
 });
 
 /* POST users signup. */
@@ -20,17 +28,30 @@ router.post('/signup', (req, res, next) => {
       }
       //if username is not taken, we will create a new user
       else {
-        passport.authenticate('local')(req, res, () => {
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'application/json');
-          res.json({success: true, status: 'Registration Successful!'});
+        if (req.body.firstname)
+          user.firstname = req.body.firstname;
+
+        if (req.body.lastname)
+          user.lastname = req.body.lastname;
+
+        user.save((err, user) => {
+          if(err) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.json({err : err});
+          }
+          passport.authenticate('local')(req, res, () => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json({success: true, status: 'Registration Successful!'});
+          });
         })
       }
-  })
+  });
 });
 
 /* POST user Login. */
-router.post('/login',  passport.authenticate('local'), (req, res,) => {
+router.post('/login', passport.authenticate('local'), (req, res,) => {
     var token = authenticate.getToken({_id: req.user._id});
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
