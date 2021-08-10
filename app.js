@@ -5,6 +5,8 @@ var path = require('path');
 const MongoClient = require('mongodb').MongoClient;
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var session = require('express-session');
+var FileStore = require('session-file-store')(session);
 const dboper = require('./operations');
 const mongoose = require('mongoose');
 const Dishes = require('./models/dishes');
@@ -13,6 +15,7 @@ var usersRouter = require('./routes/users');
 var dishRouter =  require('./routes/dishRouter')
 var promoRouter = require('./routes/promoRouter');
 var leaderRouter = require('./routes/leaderRouter');
+const { FailedDependency } = require('http-errors');
 
 //Express Setup
 var app = express();
@@ -25,48 +28,36 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser('12345-67890-09876-54321'));
+app.use(session({
+    name: 'session-id',
+    secret: '12345-67890-09876-54321',
+    saveUninitialized: false,
+    resave: false,
+    store: new FileStore()
+}));
+// app.use(cookieParser('12345-67890-09876-54321'));
 
 //Basic authentication to prevent unauthed access to our static pages
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
 function auth(req, res, next) {
-    console.log(req.signedCookies);
+    console.log(req.session);
 
     //if the signed cookie does not contain the user authorization, then we expect the user to authorize themselves
-    if(!req.signedCookies.user) {
-        var authHeader = req.headers.authorization;
+    if(!req.session.user) {
+        var err = new Error ('You are not authenticated!');
+        err.status = 401;
+        return next(err);
 
-        //if a user is not authorized, return error message
-        if (!authHeader) {
-            var err = new Error ('You are not authenticated!');
-            res.setHeader('WWW-Authenticate', 'Basic');
-            err.status = 401;
-            return next(err);
-        }
-    
-        var auth = new Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-    
-        var username = auth[0];
-        var password = auth[1];
-    
-        if(username === 'admin' && password === 'admin') {
-            res.cookie('user', 'admin', {signed: true} );
-            next();
-        } 
-        else {
-            var err = new Error ('You are not authenticated!');
-            res.setHeader('WWW-Authenticate', 'Basic');
-            err.status = 401;
-            return next(err);
-        }
-        
     //else if the signed cookie does contain the user authorization, then we will authorize the user
     } else {
-        if (req.signedCookies.user === 'admin') {
+        if (req.session.user === 'authenticated') {
             next();
         } 
         else {
             var err = new Error ('You are not authenticated!');
-            err.status = 401;
+            err.status = 403;
             return next(err);
         }
     }
@@ -76,8 +67,6 @@ app.use(auth);
 
 //Will forward specified routes to correct path
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
 app.use('/leaders', leaderRouter);
@@ -150,41 +139,41 @@ MongoClient.connect(url).then((client) => {
     });
 
   //Executes insertion operation from operations.js
-  dboper.insertDocument(db, { name: "Vadonut", description: "Test"},
-      "dishes")
-      .then((result) => {
-          console.log("Insert Document:\n", result.ops);
+//   dboper.insertDocument(db, { name: "Vadonut", description: "Test"},
+//       "dishes")
+//       .then((result) => {
+//           console.log("Insert Document:\n", result.ops);
 
-          return dboper.findDocuments(db, "dishes");
-      })
-      //Executes finding operation from operations.js
-      .then((docs) => {
-          console.log("Found Documents:\n", docs);
+//           return dboper.findDocuments(db, "dishes");
+//       })
+//       //Executes finding operation from operations.js
+//       .then((docs) => {
+//           console.log("Found Documents:\n", docs);
 
-          return dboper.updateDocument(db, { name: "Vadonut" },
-                  { description: "Updated Test" }, "dishes");
+//           return dboper.updateDocument(db, { name: "Vadonut" },
+//                   { description: "Updated Test" }, "dishes");
 
-      })
-      //Executes updating operation from operations.js
-      .then((result) => {
-          console.log("Updated Document:\n", result.result);
+//       })
+//       //Executes updating operation from operations.js
+//       .then((result) => {
+//           console.log("Updated Document:\n", result.result);
 
-          return dboper.findDocuments(db, "dishes");
-      })
-      //Executes finding update operation from operations.js
-      .then((docs) => {
-          console.log("Found Updated Documents:\n", docs);
+//           return dboper.findDocuments(db, "dishes");
+//       })
+//       //Executes finding update operation from operations.js
+//       .then((docs) => {
+//           console.log("Found Updated Documents:\n", docs);
                           
-          return db.dropCollection("dishes");
-      })
-      //Executes deletion operation from operations.js
-      .then((result) => {
-          console.log("Dropped Collection: ", result);
+//           return db.dropCollection("dishes");
+//       })
+//       //Executes deletion operation from operations.js
+//       .then((result) => {
+//           console.log("Dropped Collection: ", result);
 
-          return client.close();
-      })
-      //Catches and logs errors
-      .catch((err) => console.log(err));
+//           return client.close();
+//       })
+//       //Catches and logs errors
+//       .catch((err) => console.log(err));
 
 })
 //Catches and logs errors
