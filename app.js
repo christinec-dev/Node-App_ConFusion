@@ -10,6 +10,8 @@ var FileStore = require('session-file-store')(session);
 const dboper = require('./operations');
 const mongoose = require('mongoose');
 const Dishes = require('./models/dishes');
+var passport = require('passport');
+var authenticate = require('./authenticate');
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var dishRouter =  require('./routes/dishRouter')
@@ -38,28 +40,20 @@ app.use(session({
 // app.use(cookieParser('12345-67890-09876-54321'));
 
 //Basic authentication to prevent unauthed access to our static pages
+app.use(passport.initialize());
+app.use(passport.session()); 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 function auth(req, res, next) {
-    console.log(req.session);
-
     //if the signed cookie does not contain the user authorization, then we expect the user to authorize themselves
-    if(!req.session.user) {
+    if(!req.user) {
         var err = new Error ('You are not authenticated!');
-        err.status = 401;
+        err.status = 403;
         return next(err);
-
     //else if the signed cookie does contain the user authorization, then we will authorize the user
     } else {
-        if (req.session.user === 'authenticated') {
-            next();
-        } 
-        else {
-            var err = new Error ('You are not authenticated!');
-            err.status = 403;
-            return next(err);
-        }
+        next();
     }
 }
 
