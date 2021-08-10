@@ -75,4 +75,20 @@ router.get('/logout', cors.corsWithOptions, (req, res) => {
   }
 });
 
+/* Facebook Login. */
+router.get('/facebook/token', passport.authenticate('facebook-token'), (req, res,) => {
+  if(req.user) {
+    var token = authenticate.getToken({_id: req.user._id});
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.json({success: true, token: token, status: 'Login Successful!'});
+  }
+  //if the user is not logged in but wants to log out
+  else {
+    var err = new Error ('You are not logged in.');
+    err.status = 403;
+    next(err);
+  }
+});
+
 module.exports = router;
