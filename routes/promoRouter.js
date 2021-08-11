@@ -14,7 +14,7 @@ promoRouter.use(express.json()); //bodypParser was used in course but has been d
 promoRouter.route('/')
 .options(cors.corsWithOptions, (req, res) => { res.sendStatus })
 .get(cors.cors, (req,res,next) => {
-    Promotions.find({})
+    Promotions.find(req.query)
     .then((promotions) => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
